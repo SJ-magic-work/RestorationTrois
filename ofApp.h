@@ -127,6 +127,11 @@ private:
 	
 	bool b_flipCamera;
 	
+	/********************
+	********************/
+	bool b_CamSearchFailed = false;
+	float t_CamSearchFailed;
+	
 	/****************************************
 	****************************************/
 	void clear_fbo(ofFbo& fbo);

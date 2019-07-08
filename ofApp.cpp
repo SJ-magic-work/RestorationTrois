@@ -78,82 +78,83 @@ void ofApp::setup(){
 	setup_Gui();
 	
 	setup_Camera();
+	if(!b_CamSearchFailed){
+		/********************
+		********************/
+		shader_AddMask.load( "sj_shader/AddMask.vert", "sj_shader/AddMask.frag");
+		shader_Mask.load( "sj_shader/mask.vert", "sj_shader/mask.frag");
+		shader_Liquid.load( "sj_shader/Liquid.vert", "sj_shader/Liquid.frag");
+		
+		/********************
+		********************/
+		/* */
+		img_Frame.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
+		img_Frame_Gray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
+		img_LastFrame_Gray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
+		img_AbsDiff_BinGray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
+		img_BinGray_Cleaned.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
+		img_Bin_RGB.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
+		
+		/* */
+		fbo_CamFrame.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
+		clear_fbo(fbo_CamFrame);
+		
+		fbo_Contents.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
+		clear_fbo(fbo_Contents);
+		
+		fbo_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, GL_RGBA);
+		Reset_FboMask();
+		
+		fbo_PreOut.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
+		clear_fbo(fbo_PreOut);
+		
+		fbo_Liquid.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA, 4);
+		clear_fbo(fbo_Liquid);
+		
+		fbo_Out.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
+		clear_fbo(fbo_Out);
+		
+		/* */
+		pix_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
+		pix_Mask_L_Gray.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, OF_IMAGE_GRAYSCALE);
+		img_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
+		img_Mask_S_Gray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
+		img_Mask_L.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, OF_IMAGE_COLOR);
+		img_Mask_L_Gray.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, OF_IMAGE_GRAYSCALE);
+		
+		/* */
+		ActivePoints_Of_Mask.resize(pix_Mask_S.getWidth() * pix_Mask_S.getHeight());
 	
-	/********************
-	********************/
-	shader_AddMask.load( "sj_shader/AddMask.vert", "sj_shader/AddMask.frag");
-	shader_Mask.load( "sj_shader/mask.vert", "sj_shader/mask.frag");
-	shader_Liquid.load( "sj_shader/Liquid.vert", "sj_shader/Liquid.frag");
-	
-	/********************
-	********************/
-	/* */
-	img_Frame.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
-	img_Frame_Gray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
-	img_LastFrame_Gray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
-	img_AbsDiff_BinGray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
-	img_BinGray_Cleaned.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
-	img_Bin_RGB.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
-	
-	/* */
-    fbo_CamFrame.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
-	clear_fbo(fbo_CamFrame);
-	
-    fbo_Contents.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
-	clear_fbo(fbo_Contents);
-	
-    fbo_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, GL_RGBA);
-	Reset_FboMask();
-	
-    fbo_PreOut.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
-	clear_fbo(fbo_PreOut);
-	
-    fbo_Liquid.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA, 4);
-	clear_fbo(fbo_Liquid);
-	
-    fbo_Out.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
-	clear_fbo(fbo_Out);
-	
-	/* */
-	pix_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
-	pix_Mask_L_Gray.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, OF_IMAGE_GRAYSCALE);
-	img_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
-	img_Mask_S_Gray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
-	img_Mask_L.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, OF_IMAGE_COLOR);
-	img_Mask_L_Gray.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, OF_IMAGE_GRAYSCALE);
-	
-	/* */
-	ActivePoints_Of_Mask.resize(pix_Mask_S.getWidth() * pix_Mask_S.getHeight());
-
-	/********************
-	********************/
-	myGlitch.setup(&fbo_Out);
-	Clear_AllGlitch();
-	
-	/********************
-	********************/
-	if(b_mov){
-		makeup_contents_list("../../../data/mov");
-		Order_of_Contents.resize(Movies.size());
-	}else{
-		makeup_contents_list("../../../data/image");
-		Order_of_Contents.resize(ArtPaints.size());
+		/********************
+		********************/
+		myGlitch.setup(&fbo_Out);
+		Clear_AllGlitch();
+		
+		/********************
+		********************/
+		if(b_mov){
+			makeup_contents_list("../../../data/mov");
+			Order_of_Contents.resize(Movies.size());
+		}else{
+			makeup_contents_list("../../../data/image");
+			Order_of_Contents.resize(ArtPaints.size());
+		}
+		
+		SJ_UTIL::FisherYates(Order_of_Contents);
+		
+		if(b_mov)		Start_Mov(get_Active_Mov());
+		else			Refresh_Fbo_Contents(get_Active_Image());
+		
+		/********************
+		********************/
+		StateTop.setup(b_mov);
+		StateNoise.setup(b_mov);
+		StateRepair.setup(b_mov);
+		
+		/********************
+		********************/
+		SyphonServer.setName("RESTORATION");
 	}
-	
-	SJ_UTIL::FisherYates(Order_of_Contents);
-	
-	if(b_mov)		Start_Mov(get_Active_Mov());
-	else			Refresh_Fbo_Contents(get_Active_Image());
-	
-	/********************
-	********************/
-	StateTop.setup(b_mov);
-	StateNoise.setup(b_mov);
-	StateRepair.setup(b_mov);
-	
-	/********************
-	********************/
-	SyphonServer.setName("RESTORATION");
 }
 
 /******************************
@@ -346,11 +347,19 @@ void ofApp::setup_Camera()
 	if(Cam_id == -2){
 		Cam_id = -1;
 		
-		for(int i = 0; i < Devices.size(); i++){
+		int i;
+		for(i = 0; i < Devices.size(); i++){
 			if(Devices[i].deviceName == "HD Pro Webcam C920" ){
 				Cam_id = i;
 				break;
 			}
+		}
+		
+		if(i == Devices.size()){
+			b_CamSearchFailed = true;
+			t_CamSearchFailed = ofGetElapsedTimef();
+			
+			return;
 		}
 	}
 	
@@ -387,6 +396,17 @@ void ofApp::setup_Gui()
 /******************************
 ******************************/
 void ofApp::update(){
+	/********************
+	********************/
+	if(b_CamSearchFailed){
+		if(2.0 < ofGetElapsedTimef() - t_CamSearchFailed){
+			ofExit(1);
+			return;
+		}else{
+			return;
+		}
+	}
+
 	/********************
 	********************/
 	int now = ofGetElapsedTimeMillis();
@@ -1178,6 +1198,19 @@ int ofApp::ForceOdd(int val){
 /******************************
 ******************************/
 void ofApp::draw(){
+	/********************
+	********************/
+	if(b_CamSearchFailed){
+		ofBackground(0);
+		ofSetColor(255, 0, 0, 255);
+		
+		char buf[BUF_SIZE_S];
+		sprintf(buf, "USB Camera not Exsist");
+		font[FONT_L].drawString(buf, ofGetWidth()/2 - font[FONT_L].stringWidth(buf)/2, ofGetHeight()/2);
+		
+		return;
+	}
+	
 	/********************
 	********************/
 	/*
