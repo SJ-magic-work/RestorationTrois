@@ -79,8 +79,6 @@ public:
 	ofxGuiGroup Group_Sound;
 		ofxFloatSlider dt_Noise_Rise;
 		ofxFloatSlider dt_Noise_Fall;
-		ofxFloatSlider dt_Amb;
-		ofxFloatSlider dt_mov;
 		
 	ofxGuiGroup Group_Liquid;
 		ofxFloatSlider dt_LiquidAmp_Rise;

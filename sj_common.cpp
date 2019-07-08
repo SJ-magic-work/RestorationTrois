@@ -75,8 +75,6 @@ void GUI_GLOBAL::setup(string GuiName, string FileName, float x, float y)
 	Group_Sound.setup("Sound");
 		Group_Sound.add(dt_Noise_Rise.setup("dt_Noise_Rise", 500, 10, 2000));
 		Group_Sound.add(dt_Noise_Fall.setup("dt_Noise_Fall", 1400, 10, 5000));
-		Group_Sound.add(dt_Amb.setup("dt_Amb", 500, 10, 2000));
-		Group_Sound.add(dt_mov.setup("dt_mov", 500, 10, 2000));
 	gui.add(&Group_Sound);
 	
 	Group_Liquid.setup("Liquid");

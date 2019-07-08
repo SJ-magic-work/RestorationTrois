@@ -340,6 +340,22 @@ void ofApp::setup_Camera()
 	
 	vector< ofVideoDevice > Devices = cam.listDevices();// 上 2行がないと、List表示されない.
 	
+	/********************
+	search for camera by device name.
+	********************/
+	if(Cam_id == -2){
+		Cam_id = -1;
+		
+		for(int i = 0; i < Devices.size(); i++){
+			if(Devices[i].deviceName == "HD Pro Webcam C920" ){
+				Cam_id = i;
+				break;
+			}
+		}
+	}
+	
+	/********************
+	********************/
 	if(Cam_id == -1){
 		std::exit(1);
 	}else{
