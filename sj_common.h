@@ -11,6 +11,10 @@
 
 /************************************************************
 ************************************************************/
+#define ADD_CURRENT_DIFF
+
+/************************************************************
+************************************************************/
 #define ERROR_MSG(); printf("Error in %s:%d\n", __FILE__, __LINE__);
 
 /************************************************************
@@ -74,6 +78,7 @@ public:
 		ofxFloatSlider MedianRadius;
 		ofxFloatSlider thresh_Medianed_to_Bin;
 		ofxFloatSlider ErodeSize;
+		ofxFloatSlider BlurRadius_CurrentDiff_S;
 		ofxFloatSlider BlurRadius_MaskL;
 		
 	ofxGuiGroup Group_Sound;

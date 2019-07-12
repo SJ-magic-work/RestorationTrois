@@ -83,6 +83,7 @@ void ofApp::setup(){
 		********************/
 		shader_AddMask.load( "sj_shader/AddMask.vert", "sj_shader/AddMask.frag");
 		shader_Mask.load( "sj_shader/mask.vert", "sj_shader/mask.frag");
+		shader_Mask_x2.load( "sj_shader/mask_x2.vert", "sj_shader/mask_x2.frag");
 		shader_Liquid.load( "sj_shader/Liquid.vert", "sj_shader/Liquid.frag");
 		
 		/********************
@@ -94,6 +95,7 @@ void ofApp::setup(){
 		img_AbsDiff_BinGray.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
 		img_BinGray_Cleaned.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_GRAYSCALE);
 		img_Bin_RGB.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
+		img_Bin_RGB_Blur.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, OF_IMAGE_COLOR);
 		
 		/* */
 		fbo_CamFrame.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
@@ -104,6 +106,9 @@ void ofApp::setup(){
 		
 		fbo_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, GL_RGBA);
 		Reset_FboMask();
+		
+		fbo_CurrentDiff_L.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
+		clear_fbo(fbo_CurrentDiff_L);
 		
 		fbo_PreOut.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
 		clear_fbo(fbo_PreOut);
@@ -142,8 +147,8 @@ void ofApp::setup(){
 		
 		SJ_UTIL::FisherYates(Order_of_Contents);
 		
-		if(b_mov)		Start_Mov(get_Active_Mov());
-		else			Refresh_Fbo_Contents(get_Active_Image());
+		if(b_mov)		Start_Mov(get_Mov_of_id(Contents_id));
+		else			Refresh_Fbo_Contents(get_Image_of_id(Contents_id));
 		
 		/********************
 		********************/
@@ -190,19 +195,51 @@ int ofApp::getNextId_of_Contents()
 
 /******************************
 ******************************/
-ofImage& ofApp::get_Active_Image()
+int ofApp::getPrevId_of_Contents()
 {
-	if(b_mov){ ERROR_MSG(); std::exit(1); }
+	int ret = Contents_id - 1;
 	
-	return ArtPaints[Order_of_Contents[Contents_id]];
+	if(ret < 0){
+		if(b_mov){
+			ret = Movies.size() - 1;
+		}else{
+			ret = ArtPaints.size() - 1;
+		}
+	}
+	
+	return ret;
 }
 
 /******************************
 ******************************/
-ofVideoPlayer* ofApp::get_Active_Mov()
+int ofApp::get_AheadId_of_Contents(int N)
+{
+	int ret = Contents_id + N;
+	
+	if(b_mov){
+		ret = ret % Movies.size();
+	}else{
+		ret = ret % ArtPaints.size();
+	}
+	
+	return ret;
+}
+
+/******************************
+******************************/
+ofImage& ofApp::get_Image_of_id(int _Contents_id)
+{
+	if(b_mov){ ERROR_MSG(); std::exit(1); }
+	
+	return ArtPaints[Order_of_Contents[_Contents_id]];
+}
+
+/******************************
+******************************/
+ofVideoPlayer* ofApp::get_Mov_of_id(int _Contents_id)
 {
 	if(!b_mov)	return NULL;
-	else		return &Movies[Order_of_Contents[Contents_id]];
+	else		return &Movies[Order_of_Contents[_Contents_id]];
 }
 
 /******************************
@@ -214,35 +251,6 @@ void ofApp::Reset_FboMask()
 	ofDrawRectangle(0, 0, fbo_Mask_S.getWidth(), fbo_Mask_S.getHeight());
 	
 	fbo_Mask_S.end();
-}
-
-/******************************
-******************************/
-void ofApp::Refresh_Fbo_Contents(ofImage& img)
-{
-	fbo_Contents.begin();
-		ofClear(0, 0, 0, 0);
-		ofSetColor(255, 255, 255, 255);
-		
-		img.draw(0, 0, fbo_Contents.getWidth(), fbo_Contents.getHeight());
-	fbo_Contents.end();
-}
-
-/******************************
-******************************/
-void ofApp::Refresh_Fbo_Contents(ofVideoPlayer* video)
-{
-	fbo_Contents.begin();
-		ofClear(0, 0, 0, 0);
-		ofSetColor(255, 255, 255, 255);
-		
-		if(video->isLoaded() && video->isPlaying()){
-			video->draw(0, 0, fbo_Contents.getWidth(), fbo_Contents.getHeight());
-		}else{
-			ofSetColor(0, 0, 0, 255);
-			ofDrawRectangle(0, 0, fbo_Contents.getWidth(), fbo_Contents.getHeight());
-		}
-	fbo_Contents.end();
 }
 
 /******************************
@@ -292,6 +300,8 @@ void ofApp::makeup_contents_list(const string dirname)
 						ofImage _image;
 						_image.load(wPathName);
 						ArtPaints.push_back(_image);
+						
+						if(MAX_IMG_LOAD <= ArtPaints.size()) break;
 					}
 				}
 			}
@@ -308,7 +318,7 @@ void ofApp::makeup_contents_list(const string dirname)
 		if(Movies.size() < 1)		{ ERROR_MSG();std::exit(1);}
 		else						{ printf("> %d movies loaded\n", int(Movies.size())); fflush(stdout); }
 	}else{
-		if(ArtPaints.size() < 2)	{ ERROR_MSG();std::exit(1);}
+		if(ArtPaints.size() < 4)	{ ERROR_MSG();std::exit(1);}
 		else						{ printf("> %d images loaded\n", int(ArtPaints.size())); fflush(stdout); }
 	}
 }
@@ -412,7 +422,7 @@ void ofApp::update(){
 	int now = ofGetElapsedTimeMillis();
 	
 	if(b_mov){
-		if(VideoVol != Gui_Global->VideoVol) { VideoVol = Gui_Global->VideoVol; get_Active_Mov()->setVolume(VideoVol); }
+		if(VideoVol != Gui_Global->VideoVol) { VideoVol = Gui_Global->VideoVol; get_Mov_of_id(Contents_id)->setVolume(VideoVol); }
 	}
 	
 	ofSoundUpdate();
@@ -422,7 +432,7 @@ void ofApp::update(){
     cam.update();
     if(cam.isFrameNew())	{ update_img_OnCam(); }
 	
-	if(b_mov)	update_mov(get_Active_Mov());
+	if(b_mov)	update_mov(get_Mov_of_id(Contents_id));
 	
 	update_img();
 	
@@ -433,7 +443,7 @@ void ofApp::update(){
 	StateChart_Repair(now);
 	
 	/* */
-	StateTop.update();
+	StateTop.update(now);
 	StateNoise.update(now);
 	
 	/* */
@@ -470,7 +480,7 @@ void ofApp::update_img_OnCam(){
 	if(b_flipCamera) img_Frame.mirror(false, true);
 	img_Frame.update();
 	
-	Copy_CamFrame_to_fbo();
+	Copy_img_to_fbo(img_Frame, fbo_CamFrame);
 	
 	img_LastFrame_Gray = img_Frame_Gray;
 	// img_LastFrame_Gray.update(); // drawしないので不要.
@@ -482,15 +492,15 @@ void ofApp::update_img_OnCam(){
 
 /******************************
 ******************************/
-void ofApp::Copy_CamFrame_to_fbo(){
+void ofApp::Copy_img_to_fbo(ofImage& img, ofFbo& fbo){
 	ofDisableAlphaBlending();
 	
-	fbo_CamFrame.begin();
+	fbo.begin();
 		ofClear(0, 0, 0, 0);
 		ofSetColor(255);
 		
-		img_Frame.draw(0, 0, fbo_CamFrame.getWidth(), fbo_CamFrame.getHeight());
-	fbo_CamFrame.end();
+		img.draw(0, 0, fbo.getWidth(), fbo.getHeight());
+	fbo.end();
 }
 
 /******************************
@@ -508,7 +518,19 @@ void ofApp::update_img(){
 	convertColor(img_BinGray_Cleaned, img_Bin_RGB, CV_GRAY2RGB);
 	img_Bin_RGB.update();
 	
-	if((StateTop.get_State() == STATE_TOP::STATE__RUN) && (StateRepair.get_State()  == STATE_REPAIR::STATE__STABLE)) Add_DiffArea_To_MaskArea();
+#ifdef ADD_CURRENT_DIFF
+	if((StateTop.get_State() == STATE_TOP::STATE__RUN) && (StateRepair.get_State() != STATE_REPAIR::STATE__STABLE)){
+		ofxCv::copy(img_Bin_RGB, img_Bin_RGB_Blur);
+		ofxCv::blur(img_Bin_RGB_Blur, ForceOdd((int)Gui_Global->BlurRadius_CurrentDiff_S));
+		img_Bin_RGB_Blur.update();
+		
+		Copy_img_to_fbo(img_Bin_RGB_Blur, fbo_CurrentDiff_L);
+	}else{
+		clear_fbo(fbo_CurrentDiff_L);
+	}
+#endif
+	
+	if((StateTop.get_State() == STATE_TOP::STATE__RUN) && (StateRepair.get_State() == STATE_REPAIR::STATE__STABLE)) Add_DiffArea_To_MaskArea();
 	fbo_Mask_S.readToPixels(pix_Mask_S);
 	img_Mask_S.setFromPixels(pix_Mask_S);
 	convertColor(img_Mask_S, img_Mask_S_Gray, CV_RGB2GRAY);
@@ -564,17 +586,48 @@ void ofApp::Mask_x_Contents()
 	ofDisableAlphaBlending();
 	
 	fbo_PreOut.begin();
-	shader_Mask.begin();
-	
-		ofClear(0, 0, 0, 0);
-		ofSetColor(255, 255, 255, 255);
+#ifdef ADD_CURRENT_DIFF
+		if((StateTop.get_State() == STATE_TOP::STATE__RUN) && (StateRepair.get_State()  != STATE_REPAIR::STATE__STABLE)){
+			shader_Mask_x2.begin();
+			
+				ofClear(0, 0, 0, 0);
+				ofSetColor(255, 255, 255, 255);
+				
+				shader_Mask_x2.setUniformTexture( "Back", fbo_CamFrame.getTexture(), 1 );
+				shader_Mask_x2.setUniformTexture( "mask_0", img_Mask_L.getTexture(), 2 );
+				shader_Mask_x2.setUniformTexture( "mask_1", fbo_CurrentDiff_L.getTexture(), 3 );
+				
+				fbo_Contents.draw(0, 0, fbo_PreOut.getWidth(), fbo_PreOut.getHeight());
+				
+			shader_Mask_x2.end();
+		}else{
+			shader_Mask.begin();
+			
+				ofClear(0, 0, 0, 0);
+				ofSetColor(255, 255, 255, 255);
+				
+				shader_Mask.setUniformTexture( "Back", fbo_CamFrame.getTexture(), 1 );
+				shader_Mask.setUniformTexture( "mask", img_Mask_L.getTexture(), 2 );
+				
+				fbo_Contents.draw(0, 0, fbo_PreOut.getWidth(), fbo_PreOut.getHeight());
+				
+			shader_Mask.end();
+		}
+#else
+
+		shader_Mask.begin();
 		
-		shader_Mask.setUniformTexture( "Back", fbo_CamFrame.getTexture(), 1 );
-		shader_Mask.setUniformTexture( "mask", img_Mask_L.getTexture(), 2 );
-		
-		fbo_Contents.draw(0, 0, fbo_PreOut.getWidth(), fbo_PreOut.getHeight());
-		
-	shader_Mask.end();
+			ofClear(0, 0, 0, 0);
+			ofSetColor(255, 255, 255, 255);
+			
+			shader_Mask.setUniformTexture( "Back", fbo_CamFrame.getTexture(), 1 );
+			shader_Mask.setUniformTexture( "mask", img_Mask_L.getTexture(), 2 );
+			
+			fbo_Contents.draw(0, 0, fbo_PreOut.getWidth(), fbo_PreOut.getHeight());
+			
+		shader_Mask.end();
+
+#endif
 	fbo_PreOut.end();
 }
 
@@ -614,59 +667,126 @@ void ofApp::LiquidEffect(ofFbo& fbo_from, ofFbo& fbo_to)
 
 /******************************
 ******************************/
+void ofApp::Refresh_Fbo_Contents(ofImage& img)
+{
+	fbo_Contents.begin();
+		ofClear(0, 0, 0, 0);
+		ofSetColor(255, 255, 255, 255);
+		
+		img.draw(0, 0, fbo_Contents.getWidth(), fbo_Contents.getHeight());
+	fbo_Contents.end();
+}
+
+/******************************
+******************************/
+void ofApp::Refresh_Fbo_Contents(ofVideoPlayer* video)
+{
+	fbo_Contents.begin();
+		ofClear(0, 0, 0, 0);
+		ofSetColor(255, 255, 255, 255);
+		
+		if(video->isLoaded() && video->isPlaying()){
+			video->draw(0, 0, fbo_Contents.getWidth(), fbo_Contents.getHeight());
+		}else{
+			ofSetColor(0, 0, 0, 255);
+			ofDrawRectangle(0, 0, fbo_Contents.getWidth(), fbo_Contents.getHeight());
+		}
+	fbo_Contents.end();
+}
+
+/******************************
+******************************/
+void ofApp::Refresh_Fbo_Contents_onChangingContents(int now, int NextImageId)
+{
+	if( DrawOffsetManager.update(now, fbo_Contents.getHeight()) ){
+		inc_Contents_id();
+		if(Contents_id == NextImageId){
+			// id : keep
+			Refresh_Fbo_Contents(get_Image_of_id(Contents_id));
+			
+			Clear_AllGlitch();
+			StateTop.Transition(STATE_TOP::STATE__WAIT_STABLE, now);
+			
+			return;
+					
+		}else if(getNextId_of_Contents() == NextImageId){
+			DrawOffsetManager.StartSpeedDown();
+		}
+	}
+	
+	double ofs = DrawOffsetManager.get_ofs();
+	
+	fbo_Contents.begin();
+		ofClear(0, 0, 0, 0);
+		ofSetColor(255, 255, 255, 255);
+		
+		get_Image_of_id(Contents_id).draw(0, ofs, fbo_Contents.getWidth(), fbo_Contents.getHeight());
+		get_Image_of_id(getNextId_of_Contents()).draw(0, ofs - fbo_Contents.getHeight(), fbo_Contents.getWidth(), fbo_Contents.getHeight());
+	fbo_Contents.end();
+}
+
+/******************************
+******************************/
 void ofApp::StateChart_Top(int now){
 	
 	static int c_Retry_video = 0;
+	static int NextImageId;
 	
 	switch(StateTop.get_State()){
 		case STATE_TOP::STATE__SLEEP:
+			if(!b_mov)											StateTop.Transition(STATE_TOP::STATE__SLEEP_PLAYING, now);
+			else if(get_Mov_of_id(Contents_id)->isPlaying())	StateTop.Transition(STATE_TOP::STATE__SLEEP_PLAYING, now);
+			break;
+			
+		case STATE_TOP::STATE__SLEEP_PLAYING:
 			if(b_mov){
-				if( get_Active_Mov()->getIsMovieDone() || !get_Active_Mov()->isPlaying() ){
-					if(get_Active_Mov()->isPlaying()){
-						get_Active_Mov()->stop();
+				if( get_Mov_of_id(Contents_id)->getIsMovieDone() || !(get_Mov_of_id(Contents_id)->isPlaying()) ){
+					if(get_Mov_of_id(Contents_id)->isPlaying()){
+						get_Mov_of_id(Contents_id)->stop();
 						usleep(2000);
 					}
 					
 					inc_Contents_id();
-					Start_Mov(get_Active_Mov());
+					Start_Mov(get_Mov_of_id(Contents_id));
 	
-					Refresh_Fbo_Contents(get_Active_Mov());
+					Refresh_Fbo_Contents(get_Mov_of_id(Contents_id));
+					
+					StateTop.Transition(STATE_TOP::STATE__SLEEP, now);
 				}
 			}
 			break;
 			
 		case STATE_TOP::STATE__RUN:
-			if( StateTop.IsTimeout(now, get_Active_Mov()) ){
+			if( StateTop.IsTimeout(now, get_Mov_of_id(Contents_id)) ){
 				Reset_FboMask();
-				Random_Enable_myGlitch();
+				if(b_mov) Random_Enable_myGlitch();
 				StateTop.Transition(STATE_TOP::STATE__CHANGING_CONTENTS, now);
 				
 				StateNoise.Transition(STATE_NOISE::STATE__CALM, now);
 				StateRepair.Transition(STATE_REPAIR::STATE__STABLE, now);
+				
+				if(!b_mov){
+					DrawOffsetManager.start(now);
+					NextImageId = get_AheadId_of_Contents(ofRandom(2, 4));
+				}
 			}
 			break;
 			
 		case STATE_TOP::STATE__CHANGING_CONTENTS:
 			if(b_mov){
-				if( get_Active_Mov()->getIsMovieDone() || !get_Active_Mov()->isPlaying() || StateTop.IsTimeout(now, get_Active_Mov()) ){
-					if(get_Active_Mov()->isPlaying()) { get_Active_Mov()->stop();	}
+				if( get_Mov_of_id(Contents_id)->getIsMovieDone() || !get_Mov_of_id(Contents_id)->isPlaying() || StateTop.IsTimeout(now, get_Mov_of_id(Contents_id)) ){
+					if(get_Mov_of_id(Contents_id)->isPlaying()) { get_Mov_of_id(Contents_id)->stop();	}
 					
 					inc_Contents_id();
-					Start_Mov(get_Active_Mov());
-					Refresh_Fbo_Contents(get_Active_Mov());
+					Start_Mov(get_Mov_of_id(Contents_id));
+					Refresh_Fbo_Contents(get_Mov_of_id(Contents_id));
 					
 					Clear_AllGlitch();
 					c_Retry_video = 0;
 					StateTop.Transition(STATE_TOP::STATE__WAIT_STABLE, now);
 				}
 			}else{
-				if( StateTop.IsTimeout(now, NULL) ){
-					inc_Contents_id();
-					Refresh_Fbo_Contents(get_Active_Image());
-					
-					Clear_AllGlitch();
-					StateTop.Transition(STATE_TOP::STATE__WAIT_STABLE, now);
-				}
+				Refresh_Fbo_Contents_onChangingContents(now, NextImageId);
 			}
 			break;
 			
@@ -679,13 +799,13 @@ void ofApp::StateChart_Top(int now){
 				printf("\n> Something wrong @ STATE__WAIT_STABLE\n");
 				fflush(stdout);
 				
-				if(get_Active_Mov()->isPlaying()) { get_Active_Mov()->stop(); }
+				if(get_Mov_of_id(Contents_id)->isPlaying()) { get_Mov_of_id(Contents_id)->stop(); }
 				
-				Start_Mov(get_Active_Mov());
+				Start_Mov(get_Mov_of_id(Contents_id));
 				
 				c_Retry_video++;
 				
-			}else if( StateTop.IsTimeout(now, get_Active_Mov()) ){
+			}else if( StateTop.IsTimeout(now, get_Mov_of_id(Contents_id)) ){
 				StateTop.Transition(STATE_TOP::STATE__RUN, now);
 			}
 			break;
@@ -1278,7 +1398,8 @@ void ofApp::draw_ProcessedImages(){
 	img_Frame_Gray.draw(80, 45, SIZE_S_WIDTH, SIZE_S_HEIGHT);
 	img_AbsDiff_BinGray.draw(480, 45, SIZE_S_WIDTH, SIZE_S_HEIGHT);
 	
-	img_BinGray_Cleaned.draw(880, 45, SIZE_S_WIDTH, SIZE_S_HEIGHT);
+	// img_BinGray_Cleaned.draw(880, 45, SIZE_S_WIDTH, SIZE_S_HEIGHT);
+	fbo_CurrentDiff_L.draw(880, 45, SIZE_S_WIDTH, SIZE_S_HEIGHT);
 	
 	/* */
 	fbo_Mask_S.draw(880, 270, SIZE_S_WIDTH, SIZE_S_HEIGHT);
@@ -1346,7 +1467,7 @@ void ofApp::Clear_AllGlitch()
 void ofApp::keyPressed(int key){
 	switch(key){
 		case 'r':
-			if(StateTop.get_State() == STATE_TOP::STATE__SLEEP){
+			if(StateTop.get_State() == STATE_TOP::STATE__SLEEP_PLAYING){
 				StateTop.Transition(STATE_TOP::STATE__RUN, ofGetElapsedTimeMillis());
 				Clear_AllGlitch();
 			}
@@ -1363,7 +1484,14 @@ void ofApp::keyPressed(int key){
 				Clear_AllGlitch();
 			}
 			break;
-			
+		
+		case 'v':
+			printf("\n----------\n");
+			for(int i = 0; i < Movies.size(); i++){
+				printf("[%d] %d, %d, %d : %5.3f\n", i, Movies[i].isLoaded(), Movies[i].isPlaying(), Movies[i].getIsMovieDone(), Movies[i].getPosition());
+			}
+			fflush(stdout);
+			break;
 			
 		case ' ':
 			{

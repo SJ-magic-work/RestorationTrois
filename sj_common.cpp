@@ -69,6 +69,7 @@ void GUI_GLOBAL::setup(string GuiName, string FileName, float x, float y)
 		Group_ImageProcess.add(MedianRadius.setup("MedianRad", 5, 0, 10));
 		Group_ImageProcess.add(thresh_Medianed_to_Bin.setup("thresh_Median", 150, 1, 200));
 		Group_ImageProcess.add(ErodeSize.setup("ErodeSize", 8, 0, 15));
+		Group_ImageProcess.add(BlurRadius_CurrentDiff_S.setup("Blur_Current_S", 7, 0, 25));
 		Group_ImageProcess.add(BlurRadius_MaskL.setup("Blur_MaskL", 31, 0, 100));
 	gui.add(&Group_ImageProcess);
 	

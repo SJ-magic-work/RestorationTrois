@@ -31,6 +31,8 @@
 #include "StateNoise.h"
 #include "StateRepair.h"
 
+#include "FilmEffect.h"
+
 /************************************************************
 ************************************************************/
 
@@ -56,6 +58,7 @@ private:
 	
 	enum{
 		MAX_MOV_LOAD = 5,
+		MAX_IMG_LOAD = 30,
 	};
 	
 	/****************************************
@@ -81,10 +84,12 @@ private:
     ofImage img_AbsDiff_BinGray;
     ofImage img_BinGray_Cleaned;
     ofImage img_Bin_RGB;
+    ofImage img_Bin_RGB_Blur;
 	
     ofFbo fbo_CamFrame;
     ofFbo fbo_Contents;
 	ofFbo fbo_Mask_S;
+	ofFbo fbo_CurrentDiff_L;
 	ofFbo fbo_PreOut;
 	ofFbo fbo_Liquid;
 	ofFbo fbo_Out;
@@ -100,6 +105,7 @@ private:
 	********************/
 	ofShader shader_AddMask;
 	ofShader shader_Mask;
+	ofShader shader_Mask_x2;
 	ofShader shader_Liquid;
 	
 	/********************
@@ -112,6 +118,8 @@ private:
 	vector<int> Order_of_Contents;
 	vector<ofImage> ArtPaints;
 	vector<ofVideoPlayer> Movies;
+	
+	DRAW_OFFSET_MANAGER DrawOffsetManager;
 	
 	float VideoVol;
 	
@@ -137,18 +145,21 @@ private:
 	void clear_fbo(ofFbo& fbo);
 	void inc_Contents_id();
 	int getNextId_of_Contents();
-	ofImage& get_Active_Image();
-	ofVideoPlayer* get_Active_Mov();
+	int getPrevId_of_Contents();
+	int get_AheadId_of_Contents(int N);
+	ofImage& get_Image_of_id(int _Contents_id);
+	ofVideoPlayer* get_Mov_of_id(int _Contents_id);
 	void Reset_FboMask();
 	void Refresh_Fbo_Contents(ofImage& img);
 	void Refresh_Fbo_Contents(ofVideoPlayer* video);
+	void Refresh_Fbo_Contents_onChangingContents(int now, int NextImageId);
 	void makeup_contents_list(const string dirname);
 	void Start_Mov(ofVideoPlayer* video);
 	void setup_Camera();
 	void setup_Gui();
 	void update_mov(ofVideoPlayer* video);
 	void update_img_OnCam();
-	void Copy_CamFrame_to_fbo();
+	void Copy_img_to_fbo(ofImage& img, ofFbo& fbo);
 	void update_img();
 	void Mask_x_Contents();
 	void LiquidEffect(ofFbo& fbo_from, ofFbo& fbo_to);

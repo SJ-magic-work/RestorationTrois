@@ -66,8 +66,8 @@ public:
 	, PatchSize(50)
 	, MaxVol_Sound_PowerRepair(1.0)
 	{
-		SJ_UTIL::setup_sound(sound_Pi, "sound/Repair/pi_1.mp3", false, 0.1);
-		SJ_UTIL::setup_sound(sound_Rapid, "sound/Repair/Cash_Register-Beep01-1.mp3", false, 0.1);
+		SJ_UTIL::setup_sound(sound_Pi, "sound/Repair/pi_1.mp3", false, 0.05);
+		SJ_UTIL::setup_sound(sound_Rapid, "sound/Repair/Cash_Register-Beep01-1.mp3", false, 0.05);
 		
 		SJ_UTIL::setup_sound(sound_PowerRepair, "sound/Repair/computer-keyboard-type-long_GJE_D24u.mp3", true, 0.0);
 		sound_PowerRepair.play();
@@ -129,7 +129,7 @@ public:
 	
 	void Set_PatchSize(float Rest){
 		// float _size = Rest / 5;
-		float _size = Rest / 5;
+		float _size = Rest / 4;
 		_size = sqrt(_size);
 		
 		if(_size < 50) _size = 50;

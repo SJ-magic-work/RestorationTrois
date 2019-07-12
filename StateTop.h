@@ -18,6 +18,7 @@ class STATE_TOP{
 public:
 	enum STATE{
 		STATE__SLEEP,
+		STATE__SLEEP_PLAYING,
 		STATE__RUN,
 		STATE__CHANGING_CONTENTS,
 		STATE__WAIT_STABLE,
@@ -26,8 +27,11 @@ public:
 	};
 	
 private:
+	int LastInt;
+	
 	ofSoundPlayer sound_Noise;
 	float MaxVol_SoundNoise;
+	float d_VolFade;
 	
 	int t_from_ms;
 	int duration;
@@ -35,6 +39,8 @@ private:
 	STATE State;
 
 	bool _IsTimeout(int now){
+		if( (State == STATE__SLEEP) || (State == STATE__SLEEP_PLAYING) || (State == STATE__CHANGING_CONTENTS) ) return false;
+		
 		if(duration < now - t_from_ms)	return true;
 		else							return false;
 	}
@@ -42,8 +48,8 @@ private:
 	bool _IsTimeout(ofVideoPlayer* video){
 		/********************
 		********************/
-		if(!video->isLoaded() || !video->isPlaying())	return false;
-		if(State == STATE__SLEEP)						return false;
+		if(!video->isLoaded() || !video->isPlaying())						return false;
+		if( (State == STATE__SLEEP) || (State == STATE__SLEEP_PLAYING) )	return false;
 		
 		/********************
 		********************/
@@ -77,19 +83,34 @@ public:
 	STATE_TOP()
 	: State(STATE__SLEEP)
 	, duration(2000) // temporary
-	, MaxVol_SoundNoise(1.0)
+	, MaxVol_SoundNoise(0.8)
+	, d_VolFade(1.0)
+	, LastInt(0)
 	{
 	}
 	
 	void setup(bool b_mov){
 		if(b_mov)	SJ_UTIL::setup_sound(sound_Noise, "sound/top/radio-tuning-noise-short-waves_zydE-HEd.mp3", true, 0.0);
-		else		SJ_UTIL::setup_sound(sound_Noise, "sound/top/radio-tuning-noise-short-waves_zydE-HEd.mp3", true, 0.0);
+		else		SJ_UTIL::setup_sound(sound_Noise, "sound/top/room-tones-movie-film-projection-room_MJdPiL4d.wav", true, 0.0);
 		
 		sound_Noise.play();
 	}
 	
-	void update(){
-		// nothing.
+	void update(int now){
+		float vol = sound_Noise.getVolume();
+		float VolFadeSpeed = (MaxVol_SoundNoise - 0) / d_VolFade;
+		
+		if(State == STATE__CHANGING_CONTENTS){
+			vol += VolFadeSpeed * float(now - LastInt) * 1.0e-3;
+		}else{
+			vol -= VolFadeSpeed * float(now - LastInt) * 1.0e-3;
+		}
+		if(vol < 0)					vol = 0;
+		if(MaxVol_SoundNoise < vol)	vol = MaxVol_SoundNoise;
+		
+		sound_Noise.setVolume(vol);
+		
+		LastInt = now;
 	}
 	
 	void Transition(int NextState, int now)
@@ -106,18 +127,18 @@ public:
 				sound_Noise.setVolume(0);
 				break;
 				
+			case STATE__SLEEP_PLAYING:
+				break;
+				
 			case STATE__RUN:
-				sound_Noise.setVolume(0);
 				duration = (int)ofRandom(60e+3, 70e+3);
 				break;
 				
 			case STATE__CHANGING_CONTENTS:
 				duration = (int)ofRandom(500, 600);
-				sound_Noise.setVolume(MaxVol_SoundNoise);
 				break;
 				
 			case STATE__WAIT_STABLE:
-				sound_Noise.setVolume(0);
 				duration = 300;
 				break;
 				
@@ -140,6 +161,7 @@ public:
 		
 		switch(State){
 			case STATE__SLEEP:
+			case STATE__SLEEP_PLAYING:
 			case STATE__RUN:
 			case STATE__CHANGING_CONTENTS:
 				return false;
