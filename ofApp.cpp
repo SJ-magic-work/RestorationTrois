@@ -101,7 +101,7 @@ void ofApp::setup(){
 		fbo_CamFrame.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
 		clear_fbo(fbo_CamFrame);
 		
-		fbo_Contents.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA);
+		fbo_Contents.allocate(SIZE_L_WIDTH, SIZE_L_HEIGHT, GL_RGBA, 4);
 		clear_fbo(fbo_Contents);
 		
 		fbo_Mask_S.allocate(SIZE_S_WIDTH, SIZE_S_HEIGHT, GL_RGBA);
@@ -669,6 +669,9 @@ void ofApp::LiquidEffect(ofFbo& fbo_from, ofFbo& fbo_to)
 ******************************/
 void ofApp::Refresh_Fbo_Contents(ofImage& img)
 {
+	ofDisableAlphaBlending();
+	ofEnableSmoothing();
+	
 	fbo_Contents.begin();
 		ofClear(0, 0, 0, 0);
 		ofSetColor(255, 255, 255, 255);
@@ -681,6 +684,9 @@ void ofApp::Refresh_Fbo_Contents(ofImage& img)
 ******************************/
 void ofApp::Refresh_Fbo_Contents(ofVideoPlayer* video)
 {
+	ofDisableAlphaBlending();
+	ofEnableSmoothing();
+	
 	fbo_Contents.begin();
 		ofClear(0, 0, 0, 0);
 		ofSetColor(255, 255, 255, 255);
@@ -696,25 +702,30 @@ void ofApp::Refresh_Fbo_Contents(ofVideoPlayer* video)
 
 /******************************
 ******************************/
-void ofApp::Refresh_Fbo_Contents_onChangingContents(int now, int NextImageId)
+void ofApp::Refresh_Fbo_Contents_onChangingContents(int now)
 {
-	if( DrawOffsetManager.update(now, fbo_Contents.getHeight()) ){
+	/********************
+	********************/
+	int ret = DrawOffsetManager.update(now, fbo_Contents.getHeight());
+	
+	if(ret == 1){
 		inc_Contents_id();
-		if(Contents_id == NextImageId){
-			// id : keep
-			Refresh_Fbo_Contents(get_Image_of_id(Contents_id));
-			
-			Clear_AllGlitch();
-			StateTop.Transition(STATE_TOP::STATE__WAIT_STABLE, now);
-			
-			return;
-					
-		}else if(getNextId_of_Contents() == NextImageId){
-			DrawOffsetManager.StartSpeedDown();
-		}
+	}else if(ret == 2){
+		// id : keep
+		Refresh_Fbo_Contents(get_Image_of_id(Contents_id));
+		
+		Clear_AllGlitch();
+		StateTop.Transition(STATE_TOP::STATE__WAIT_STABLE, now);
+		
+		return;
 	}
 	
+	/********************
+	********************/
 	double ofs = DrawOffsetManager.get_ofs();
+	
+	ofDisableAlphaBlending();
+	ofEnableSmoothing();
 	
 	fbo_Contents.begin();
 		ofClear(0, 0, 0, 0);
@@ -730,7 +741,6 @@ void ofApp::Refresh_Fbo_Contents_onChangingContents(int now, int NextImageId)
 void ofApp::StateChart_Top(int now){
 	
 	static int c_Retry_video = 0;
-	static int NextImageId;
 	
 	switch(StateTop.get_State()){
 		case STATE_TOP::STATE__SLEEP:
@@ -758,16 +768,21 @@ void ofApp::StateChart_Top(int now){
 			
 		case STATE_TOP::STATE__RUN:
 			if( StateTop.IsTimeout(now, get_Mov_of_id(Contents_id)) ){
-				Reset_FboMask();
-				if(b_mov) Random_Enable_myGlitch();
 				StateTop.Transition(STATE_TOP::STATE__CHANGING_CONTENTS, now);
+				
+				Reset_FboMask();
 				
 				StateNoise.Transition(STATE_NOISE::STATE__CALM, now);
 				StateRepair.Transition(STATE_REPAIR::STATE__STABLE, now);
 				
+				Clear_AllGlitch();
+				if(b_mov) Random_Enable_myGlitch();
+				
 				if(!b_mov){
-					DrawOffsetManager.start(now);
-					NextImageId = get_AheadId_of_Contents(ofRandom(2, 4));
+					int RandomNum = ofRandom(2, 4);
+					int NextImageId = get_AheadId_of_Contents(RandomNum);
+				
+					DrawOffsetManager.start(now, RandomNum * fbo_Contents.getHeight(), RandomNum * fbo_Contents.getHeight() + 0, (RandomNum - 1) * fbo_Contents.getHeight());
 				}
 			}
 			break;
@@ -786,7 +801,7 @@ void ofApp::StateChart_Top(int now){
 					StateTop.Transition(STATE_TOP::STATE__WAIT_STABLE, now);
 				}
 			}else{
-				Refresh_Fbo_Contents_onChangingContents(now, NextImageId);
+				Refresh_Fbo_Contents_onChangingContents(now);
 			}
 			break;
 			

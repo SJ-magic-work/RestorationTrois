@@ -152,7 +152,7 @@ private:
 	void Reset_FboMask();
 	void Refresh_Fbo_Contents(ofImage& img);
 	void Refresh_Fbo_Contents(ofVideoPlayer* video);
-	void Refresh_Fbo_Contents_onChangingContents(int now, int NextImageId);
+	void Refresh_Fbo_Contents_onChangingContents(int now);
 	void makeup_contents_list(const string dirname);
 	void Start_Mov(ofVideoPlayer* video);
 	void setup_Camera();

@@ -84,7 +84,7 @@ public:
 	: State(STATE__SLEEP)
 	, duration(2000) // temporary
 	, MaxVol_SoundNoise(0.8)
-	, d_VolFade(1.0)
+	, d_VolFade(0.7)
 	, LastInt(0)
 	{
 	}
