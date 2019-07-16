@@ -169,6 +169,7 @@ private:
 	ofVec2f SizeConvert_StoL(ofVec2f from);
 	ofVec2f SelectNextTargetToRepair();
 	void drawFbo_Preout_to_Out(ofFbo& fbo_pre);
+	void drawFbo_Cursor_On_ShortRepair(ofFbo& fbo);
 	void drawFbo_String_Info_on_Repairing(ofFbo& fbo);
 	void drawFbo_String_PowerRepairing(ofFbo& fbo);
 	void drawFbo_Scale(ofFbo& fbo);

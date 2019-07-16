@@ -24,6 +24,7 @@ public:
 		STATE__BUFFER,
 		STATE__WAIT_POWER_REPAIR,
 		STATE__POWER_REPAIR,
+		STATE__SHORT_REPAIR,
 		
 		NUM_STATE,
 	};
@@ -32,14 +33,17 @@ private:
 	ofSoundPlayer sound_Pi;
 	ofSoundPlayer sound_Rapid;
 	ofSoundPlayer sound_PowerRepair;
+	ofSoundPlayer sound_ShortRepair;
 	
 	const float MaxVol_Sound_PowerRepair;
+	const float MaxVol_Sound_ShortRepair;
 	
 	int t_LastSound_Pi;
 	
 	STATE State;
 	int t_from_ms;
 	int duration;
+	const int duration_shortRepair;
 	int LastInt;
 	
 	bool b_DispCursor;
@@ -65,12 +69,17 @@ public:
 	, RepairSpeed_PixPerSec(140)
 	, PatchSize(50)
 	, MaxVol_Sound_PowerRepair(1.0)
+	, MaxVol_Sound_ShortRepair(0.8)
+	, duration_shortRepair(1500)
 	{
 		SJ_UTIL::setup_sound(sound_Pi, "sound/Repair/pi_1.mp3", false, 0.05);
 		SJ_UTIL::setup_sound(sound_Rapid, "sound/Repair/Cash_Register-Beep01-1.mp3", false, 0.05);
 		
 		SJ_UTIL::setup_sound(sound_PowerRepair, "sound/Repair/computer-keyboard-type-long_GJE_D24u.mp3", true, 0.0);
 		sound_PowerRepair.play();
+		
+		SJ_UTIL::setup_sound(sound_ShortRepair, "sound/Repair/computer-keyboard-type-keys-typing_G1N16KNd.mp3", true, 0.0);
+		sound_ShortRepair.play();
 	}
 	
 	void setup(bool b_mov){
@@ -89,6 +98,7 @@ public:
 			case STATE__STABLE:
 				b_DispCursor = false;
 				sound_PowerRepair.setVolume(0.0);
+				sound_ShortRepair.setVolume(0.0);
 				break;
 				
 			case STATE__REPAIR:
@@ -106,9 +116,10 @@ public:
 				break;
 				
 			case STATE__BUFFER:
-				duration = 1000;
+				duration = 500;
 				b_DispCursor = false;
 				sound_PowerRepair.setVolume(0.0);
+				sound_ShortRepair.setVolume(0.0);
 				break;
 				
 			case STATE__WAIT_POWER_REPAIR:
@@ -118,6 +129,10 @@ public:
 			case STATE__POWER_REPAIR:
 				duration = (int)ofRandom(2500, 3000);
 				sound_PowerRepair.setVolume(MaxVol_Sound_PowerRepair);
+				break;
+				
+			case STATE__SHORT_REPAIR:
+				sound_ShortRepair.setVolume(MaxVol_Sound_ShortRepair);
 				break;
 				
 			default:
@@ -202,6 +217,17 @@ public:
 				
 				ret = true;
 			}
+		}else if(State == STATE__SHORT_REPAIR){
+			fbo.begin();
+			ofSetColor(255, 255, 255, 255);
+			
+			float _x = get_CursorPos_ShortRepair(now, fbo);
+			ofDrawRectangle(0, 0, _x, fbo.getHeight());
+			fbo.end();
+			
+			if(duration_shortRepair <= now - t_from_ms){
+				Transition(STATE__BUFFER, now);
+			}
 		}
 		
 		return ret;
@@ -212,4 +238,5 @@ public:
 	int get__c_Rapid(){ return c_Rapid; }
 	ofVec2f get_CursorPos(){ return Cross; }
 	ofVec2f get_TargetCursorPos(){ return Cross_Next; }
+	float get_CursorPos_ShortRepair(int now, ofFbo& fbo) { return float(fbo.getWidth()) / duration_shortRepair * float(now - t_from_ms); }
 };

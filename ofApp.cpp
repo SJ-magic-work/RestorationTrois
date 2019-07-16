@@ -873,6 +873,9 @@ void ofApp::StateChart_Repair(int now){
 			if( (StateNoise.get_State() == STATE_NOISE::STATE__CALM) && (pix_Mask_S.getWidth() * pix_Mask_S.getHeight() * 0.7 < c_TotalActivePixels) ){
 				StateRepair.Transition(STATE_REPAIR::STATE__WAIT_POWER_REPAIR, now);
 			
+			}else if( (StateNoise.get_State() == STATE_NOISE::STATE__CALM) && ( (0 < c_TotalActivePixels) && (c_TotalActivePixels < 40.0 * 40.0) ) ){
+				StateRepair.Transition(STATE_REPAIR::STATE__SHORT_REPAIR, now);
+			
 			}else if( (StateNoise.get_State() == STATE_NOISE::STATE__CALM) && (0 < c_TotalActivePixels) ){
 				ofVec2f NextTarget = SelectNextTargetToRepair();
 				
@@ -935,6 +938,10 @@ void ofApp::StateChart_Repair(int now){
 				Clear_AllGlitch();
 				Reset_FboMask();
 			}
+			break;
+			
+		case STATE_REPAIR::STATE__SHORT_REPAIR:
+			// transition @ STATE_REPAIR::draw()
 			break;
 			
 		default:
@@ -1019,12 +1026,36 @@ void ofApp::drawFbo_Preout_to_Out(ofFbo& fbo_pre)
 	
 	/********************
 	********************/
-	if( (StateRepair.get_State() != STATE_REPAIR::STATE__STABLE) && (StateRepair.get_State() != STATE_REPAIR::STATE__BUFFER) ){
+	if( (StateRepair.get_State() != STATE_REPAIR::STATE__STABLE) && (StateRepair.get_State() != STATE_REPAIR::STATE__BUFFER) && (StateRepair.get_State() != STATE_REPAIR::STATE__SHORT_REPAIR) ){
 		drawFbo_Scale(fbo_Out);
 		drawFbo_String_Info_on_Repairing(fbo_Out);
 	}
 	
+	if(StateRepair.get_State() == STATE_REPAIR::STATE__SHORT_REPAIR) { /* drawFbo_Cursor_On_ShortRepair(fbo_Out); */ drawFbo_Scale(fbo_Out); }
+	
 	if(StateRepair.get_State() == STATE_REPAIR::STATE__POWER_REPAIR) drawFbo_String_PowerRepairing(fbo_Out);
+}
+
+/******************************
+******************************/
+void ofApp::drawFbo_Cursor_On_ShortRepair(ofFbo& fbo)
+{
+	fbo.begin();
+		float Cursor_x = StateRepair.get_CursorPos_ShortRepair(ofGetElapsedTimeMillis(), fbo_Out);
+		
+		ofEnableAlphaBlending();
+		// ofEnableBlendMode(OF_BLENDMODE_ADD);
+		ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+		// ofDisableAlphaBlending();
+		
+		ofSetColor(255, 255, 0, 100);
+		glPointSize(1.0);
+		// glLineWidth(1);
+		ofSetLineWidth(2);
+		
+		ofDrawLine(Cursor_x, 0, Cursor_x, fbo.getHeight());
+		
+	fbo.end();
 }
 
 /******************************
