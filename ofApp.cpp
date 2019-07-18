@@ -764,6 +764,13 @@ void ofApp::StateChart_Top(int now){
 					StateTop.Transition(STATE_TOP::STATE__SLEEP, now);
 				}
 			}
+			
+#ifdef AUTO_RUN_FROM_SLEEP
+			if( StateTop.IsTimeout(now, get_Mov_of_id(Contents_id)) ){
+				StateTop.Transition(STATE_TOP::STATE__RUN, ofGetElapsedTimeMillis());
+				Clear_AllGlitch();
+			}
+#endif			
 			break;
 			
 		case STATE_TOP::STATE__RUN:

@@ -4,7 +4,7 @@
 #define BOOT_MODE__DEFAULT	0
 #define BOOT_MODE__KAISAIYU	1
 #define BOOT_MODE__SUNAD 	2
-	#define BOOT_MODE BOOT_MODE__DEFAULT
+	#define BOOT_MODE BOOT_MODE__KAISAIYU
 
 //========================================================================
 int main( int argc, char** argv ){

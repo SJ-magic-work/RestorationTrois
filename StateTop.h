@@ -128,10 +128,12 @@ public:
 				break;
 				
 			case STATE__SLEEP_PLAYING:
+				duration = 5e+3; // used when "AUTO_RUN_FROM_SLEEP"
 				break;
 				
 			case STATE__RUN:
-				duration = (int)ofRandom(60e+3, 70e+3);
+				// duration = (int)ofRandom(60e+3, 70e+3);
+				duration = (int)ofRandom(110e+3, 120e+3);
 				break;
 				
 			case STATE__CHANGING_CONTENTS:
@@ -152,6 +154,14 @@ public:
 	int ms_To_Timeout(int now){ return duration - (now - t_from_ms); }
 	
 	bool IsTimeout(int now, ofVideoPlayer* video = NULL){
+#ifdef AUTO_RUN_FROM_SLEEP
+		// both mov & still
+		if( State == STATE__SLEEP_PLAYING ){
+			if(duration < now - t_from_ms)	return true;
+			else							return false;
+		}
+#endif
+
 		if(!video)	return _IsTimeout(now);
 		else		return _IsTimeout(video);
 	}
