@@ -332,8 +332,8 @@ void ofApp::Start_Mov(ofVideoPlayer* video)
 		video->setSpeed(1);
 		video->setVolume(VideoVol);
 		video->setPaused(false);
-		video->setPosition(0); // *.movは、"OF_LOOP_NONE"の時、明示的にsetPosition(0) しないと、戻らないようだ.
 		video->play();
+		video->setPosition(0); // *.movは、"OF_LOOP_NONE"の時、明示的にsetPosition(0) しないと、戻らないようだ. : seekをplay の後に移動(2020.10.08)
 	}
 }
 
@@ -797,7 +797,7 @@ void ofApp::StateChart_Top(int now){
 		case STATE_TOP::STATE__CHANGING_CONTENTS:
 			if(b_mov){
 				if( get_Mov_of_id(Contents_id)->getIsMovieDone() || !get_Mov_of_id(Contents_id)->isPlaying() || StateTop.IsTimeout(now, get_Mov_of_id(Contents_id)) ){
-					if(get_Mov_of_id(Contents_id)->isPlaying()) { get_Mov_of_id(Contents_id)->stop();	}
+					if(get_Mov_of_id(Contents_id)->isPlaying()) { get_Mov_of_id(Contents_id)->setPosition(0); get_Mov_of_id(Contents_id)->stop(); }
 					
 					inc_Contents_id();
 					Start_Mov(get_Mov_of_id(Contents_id));
